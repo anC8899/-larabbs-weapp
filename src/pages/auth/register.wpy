@@ -191,7 +191,7 @@
           // 跳转到我的页面
           setTimeout(function() {
             wepy.switchTab({
-              url: '/pages/user'
+              url: '/pages/users/me'
             })
           }, 2000)
         }
@@ -259,10 +259,6 @@
       // 绑定验证码输入
       bindCaptchaCodeInput (e) {
         this.captchaValue = e.detail.value
-      },
-      // 响应获取图片验证码按钮点击事件
-      async tapCaptchaCode() {
-        this.getCaptchaCode()
       },
       // 响应获取图片验证码按钮点击事件
       async tapCaptchaCode() {
