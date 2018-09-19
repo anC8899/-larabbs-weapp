@@ -64,12 +64,20 @@
       <view class="page__bd page__bd_spacing logout">
         <button class="weui-btn" type="warn" wx:if="{{ user }}" @tap="logout">退出登录</button>
       </view>
+      <view class="userinfo">
+      <button wx:if="{{!hasUserInfo && canIUse}}" type="primary" open-type="getUserInfo" bindgetuserinfo="getUserInfo"> 获取头像昵称 </button>
+      <block wx:else>
+        <image bindtap="bindViewTap"  class="userinfo-avatar" src="{{userInfo.avatarUrl}}" background-size="cover"></image>
+        <text class="userinfo-nickname">{{userInfo.nickName}}</text>
+      </block>
+    </view>
     </view>
   </view>
 </template>
 
 <script>
   import wepy from 'wepy'
+  import 'wepy-async-function'
   import api from '@/utils/api'
 
   export default class UserMe extends wepy.page {
@@ -78,19 +86,60 @@
     }
     data = {
       // 用户信息
-      user: null
+      user: null,
+      userInfo: {},
+      hasUserInfo: false,
+      canIUse: wepy.canIUse('button.open-type.getUserInfo')
     }
     async onShow() {
       // 每次打开页面，获取当前用户信息
       this.user = await this.$parent.getCurrentUser()
       this.$apply()
     }
+    async onLoad() {
+      // const codeRes = await wepy.login()
+      // console.log(codeRes)
+      // const userInfo = await wepy.getUserInfo()
+      // console.log(userInfo)
+    }
+
+    async getUserInfo(e) {
+      // const userInfoRes = await wepy.getUserInfo()
+      // console.log(e.detail)
+      let userSession = {}
+      let userInfo = e.detail.userInfo
+      const iv = e.detail.iv
+      const encryptedData = e.detail.encryptedData
+      const codeRes = await wepy.login()
+      if (codeRes) {
+        userSession = await api.request({
+          url: 'weapp/userSession',
+          method: 'POST',
+          data: {'code': codeRes.code}
+        })
+        wepy.setStorageSync('user_session', userSession.data)
+      }
+
+      if (userSession.statusCode === 200) {
+        const user = await api.request({
+          url: 'weapp/userInfo',
+          method: 'POST',
+          data: {'session_key': userSession.data.session_key, 'iv': iv, 'encryptData': encryptedData}
+        })
+        userInfo = user.data
+      }
+      wepy.setStorageSync('user_info', userInfo)
+      this.userInfo = userInfo
+      this.hasUserInfo = true
+      this.$apply()
+
+      // console.log(e.detail)
+    }
     methods = {
       // 退出登录方法
       async logout (e) {
         try {
           let logoutResponse = await api.logout()
-
           if (logoutResponse.statusCode === 204) {
             this.user = null
             this.$apply()
